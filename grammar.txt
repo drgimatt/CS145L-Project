@@ -1,0 +1,24 @@
+expr          : IDENTIFIER COLON EQ expr <-hindi tama so far kase pwede wala colon
+              : comp-expr ((KEYWORD AND | KEYWORD: OR)comp-expr)*
+
+comp-expr     : NOT comp-expr
+              : arith-expr ((EE|LT|GT|LTE|GTE) arith-expr)*
+
+arith-expr    : term ((PLUS | MINUS) term)*
+
+term          : factor ((MUL|DIV) factor)*
+
+factor        : (PLUS | MINUS) factor
+              : power
+       
+power         : base (POWER factor)*
+
+base          : INT|FLOAT|IDENTIFIER
+              : LPAREN expr RPAREN
+              : if-expr
+
+if-expr       : KEYWORD: IF expr KEYWORD: THEN expr
+              : (KEYWORD: ELIF expr KEYWORD:THEN expr)*
+              : (KEYWORD: ELSE expr)?
+
+       
