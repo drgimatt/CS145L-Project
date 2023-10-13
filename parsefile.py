@@ -15,6 +15,15 @@ class NumberNode:
     def __repr__(self):
         return f'{self.token}'
 
+class StringNode:
+    def __init__(self, token):
+        self.token = token
+
+        self.pos_start = self.token.pos_start
+        self.pos_end = self.token.pos_end
+
+    def __repr__(self):
+        return f'{self.token}'
 
 class VarAccessNode:
     def __init__(self, var_name_token):
@@ -66,11 +75,37 @@ class IfNode:
         self.pos_start = self.cases[0][0].pos_start
         self.pos_end = self.else_case or self.cases[len(
             self.cases)-1][0].pos_end
+        
+class FuncDefNode:
+    def __init__(self, var_name_token, arg_name_tokens, body_node):
+        self.var_name_token = var_name_token
+        self.arg_name_tokens = arg_name_tokens
+        self.body_node = body_node
+
+        if self.var_name_token:
+            self.pos_start = self.var_name_token.pos_start
+        elif len(self.arg_name_toks) > 0:
+            self.pos_start = self.arg_name_tokens[0].pos_start
+        else:
+            self.pos_start = self.body_node.pos_start
+        
+        self.pos_end = self.body_node.pos_end
+
+class CallNode:
+    def __init__(self, node_to_call, arg_nodes):
+        self.node_to_call = node_to_call
+        self.arg_nodes = arg_nodes
+
+        self.pos_start = self.node_to_call.pos_start
+
+        if len(self.arg_nodes) > 0:
+            self.pos_end = self.arg_nodes[len(self.arg_nodes)-1].pos_end
+        else:
+            self.pos_end = self.node_to_call.pos_end      
 
 ##########################
 # PARSER RESULT
 ##########################
-
 
 class ParseResult:
     def __init__(self):
@@ -127,7 +162,8 @@ class Parser:
     def parse(self):
         result = self.expr()
         if not result.error and self.current_token.type != lexer.TT_EOF:
-            return result.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected '+', '-', '*', or '/'"))
+            print("imburnal")
+            return result.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected '+', '-', '*', '/', '^', '==', '!=', '<', '>', <=', '>=', 'AND' or 'OR'"))
         return result
 
     ##########################
@@ -196,6 +232,11 @@ class Parser:
             self.advance()
             return result.success(NumberNode(token))
 
+        if token.type == lexer.TT_STRING:
+            result.register_advancement()
+            self.advance()
+            return result.success(StringNode(token))
+
         elif token.type == lexer.TT_IDENTIFIER:
             result.register_advancement()
             self.advance()
@@ -220,10 +261,50 @@ class Parser:
                 return result
             return result.success(if_expr)
 
-        return result.failure(lexer.InvalidSyntaxError(token.pos_start, token.pos_end, "Expected int, float, identifier, '+', '-', or '('"))
+        elif token.matches(lexer.TT_KEYWORD, 'FUNC'):
+            func_def = result.register(self.func_def())
+            if result.error:
+                return result
+            return result.success(func_def)
+
+        return result.failure(lexer.InvalidSyntaxError(token.pos_start, token.pos_end, "Expected int, float, identifier, '+', '-', '(', 'FOR', 'IF', 'FUNC' or 'NOT'"))
 
     def power(self):
         return self.binary_operation(self.base, (lexer.TT_POWER,), self.factor)
+
+    def call(self):
+        res = ParseResult()
+        base = res.register(self.base())
+        if res.error:
+            return res
+        if self.current_token.type == lexer.TT_LPAREN:
+            res.register_advancement()
+            self.advance()
+            args_nodes = []
+
+            if self.current_token.type == lexer.TT_RPAREN:
+                res.register_advancement()
+                self.advance()
+            else:
+                args_nodes.append(res.register(self.expr()))
+                if res.error:
+                    return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected ')', 'IF', 'FUNC', int, float, identifier, '+', '-', '(' or 'NOT'",))
+                
+                while self.current_token.type == lexer.TT_COMMA:
+                    res.register_advancement()
+                    self.advance()
+
+                    args_nodes.append(res.register(self.expr()))
+                    if res.error:
+                        return res
+                
+                if self.current_token.type != lexer.TT_RPAREN:
+                    return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected ',' or ')'",))
+                res.register_advancement()
+                self.advance()
+            return res.success(CallNode(base, args_nodes))
+        return res.success(base)
+
 
     def factor(self):
         result = ParseResult()
@@ -278,7 +359,7 @@ class Parser:
             self.advance()
 
             if self.current_token.type != lexer.TT_COLON:
-                res.register_advancement()
+                res.register_reversal()
                 self.reverse()
 
 
@@ -297,11 +378,12 @@ class Parser:
                     return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected '='"))
 
                 if flag_ident == True:
-                    node = res.register(self.binary_operation(self.comp_expr, ((lexer.TT_KEYWORD, "AND"), (lexer.TT_KEYWORD, "||"))))
+                    node = res.register(self.binary_operation(self.comp_expr, ((lexer.TT_KEYWORD, "AND"), (lexer.TT_KEYWORD, "OR"))))
             
                     if res.error:
                         return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected int, float, '+', '-', or '('"))
-            
+
+                    print("bonaks")
                     return res.success(node)
 
             res.register_advancement()
@@ -309,15 +391,79 @@ class Parser:
             expr = res.register(self.expr())
             if res.error:
                 return res
+            print("fofasd")
             return res.success(VarAssignNode(var_name, expr))
 
         node = res.register(self.binary_operation(
             self.comp_expr, ((lexer.TT_KEYWORD, "AND"), (lexer.TT_KEYWORD, "OR"))))
 
         if res.error:
-            return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected int, float, identifier, '+', '-', or '('"))
+            return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected int, float, identifier, '+', '-', '(', 'FOR', 'IF', 'FUNC' or 'NOT'"))
+
+        print("burnal")
 
         return res.success(node)
+    
+    def func_def(self):
+        res = ParseResult()
+        print("puke")
+        if not self.current_token.matches(lexer.TT_KEYWORD, 'FUNC'):
+            return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, f"Expected 'FUNC'"))
+
+        res.register_advancement()
+        self.advance()
+
+        if self.current_token.type == lexer.TT_IDENTIFIER:
+            var_name_token = self.current_token
+            res.register_advancement()
+            self.advance()
+            if self.current_token.type != lexer.TT_LPAREN  :
+                return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, f"Expected '('"))
+        else:
+            var_name_token = None
+            if self.current_token.type != lexer.TT_LPAREN:
+                return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, f"Expected identifier or '('"))
+        
+        res.register_advancement()
+        self.advance()
+        args = []
+
+        if self.current_token.type == lexer.TT_IDENTIFIER:
+            args.append(self.current_token)
+            res.register_advancement()
+            self.advance()
+
+            while self.current_token.type == lexer.TT_COMMA:
+                res.register_advancement()
+                self.advance()
+
+                if self.current_token.type != lexer.TT_IDENTIFIER:
+                    return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, f"Expected identifier"))
+                
+                args.append(self.current_token)
+                res.register_advancement()
+                self.advance()
+            
+            if self.current_token.type != lexer.TT_RPAREN:
+                return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, f"Expected ',' or ')'"))
+        else:
+            if self.current_token.type != lexer.TT_RPAREN:
+                return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, f"Expected identifier or ')'"))
+        
+        res.register_advancement()
+        self.advance()
+
+        if self.current_token.type != lexer.TT_ARROW:
+            return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, f"Expected '->'"))
+        
+        res.register_advancement()
+        self.advance()
+        node_to_return = res.register(self.expr())
+        if res.error:
+            return res
+        
+        print("tangina")
+        return res.success(FuncDefNode(var_name_token, args, node_to_return))
 
     ##########################
 

@@ -13,12 +13,17 @@ factor        : (PLUS | MINUS) factor
        
 power         : base (POWER factor)*
 
-base          : INT|FLOAT|IDENTIFIER
+call          : base (LPAREN (expr (COMMA expr)*)? RPAREN)?
+
+base          : INT|FLOAT|STRING|IDENTIFIER
               : LPAREN expr RPAREN
               : if-expr
+              : func-def
 
 if-expr       : KEYWORD: IF expr KEYWORD: THEN expr
               : (KEYWORD: ELIF expr KEYWORD:THEN expr)*
               : (KEYWORD: ELSE expr)?
 
-       
+func-def      : KEYWORD: FUNC IDENTIFER?
+                LPAREN (IDENTIFIER (COMMA IDENTIFIER)*)? RPAREN
+                ARROW expr

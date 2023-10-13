@@ -100,6 +100,7 @@ class Position:
 
 TT_INT = 'INT'
 TT_FLOAT = 'FLOAT'
+TT_STRING = 'STRING'
 TT_PLUS = 'PLUS'
 TT_MINUS = 'MINUS'
 TT_MUL = 'MUL'
@@ -119,8 +120,10 @@ TT_LT = 'LT'
 TT_GT = 'GT'
 TT_LTE = 'LTE'
 TT_GTE = 'GTE'
+TT_COMMA = 'COMMA'
+TT_ARROW = 'ARROW'
 
-KEYWORDS = ['AND', 'OR', 'NOT', 'IF', 'THEN', 'ELIF', 'ELSE']
+KEYWORDS = ['AND', 'OR', 'NOT', 'IF', 'THEN', 'ELIF', 'ELSE', 'FUNC','output']
 
 
 class Token:
@@ -173,13 +176,15 @@ class Lexer:
             elif self.current_char in DIGITS:
                 tokens.append(self.make_number())
             elif self.current_char in LETTERS:
+                print("bynasd")
                 tokens.append(self.make_identifier())
+            elif self.current_char in '"':
+                tokens.append(self.make_string())                
             elif self.current_char == '+':
                 tokens.append(Token(TT_PLUS, pos_start=self.pos))
                 self.advance()
             elif self.current_char == '-':
-                tokens.append(Token(TT_MINUS, pos_start=self.pos))
-                self.advance()
+                tokens.append(self.make_arrow())
             elif self.current_char == '*':
                 tokens.append(Token(TT_MUL, pos_start=self.pos))
                 self.advance()
@@ -208,7 +213,10 @@ class Lexer:
             elif self.current_char == '<':
                 tokens.append(self.make_less_than())
             elif self.current_char == '>':
-                tokens.append(self.make_greater_than())                                                        
+                tokens.append(self.make_greater_than())
+            elif self.current_char == ',':
+                tokens.append(Token(TT_COMMA, pos_start=self.pos))
+                self.advance()                                                                        
             else:
                 pos_start = self.pos.copy()
                 char = self.current_char
@@ -249,6 +257,43 @@ class Lexer:
         token_type = TT_KEYWORD if id_string in KEYWORDS else TT_IDENTIFIER
         return Token(token_type, id_string, pos_start, self.pos)
     
+    def make_string(self):
+        string = ''
+        pos_start = self.pos.copy()
+        escape_char = False
+        
+        self.advance()
+
+        escape_characters = {
+            'n': '\n',
+            't': '\t'
+        }
+        
+        while self.current_char != None and (self.current_char != '"' or escape_char):
+            if escape_char:
+                string += escape_characters.get(self.current_char, self.current_char)
+            else:
+                if self.current_char == '\\':
+                    escape_char = True
+                else:
+                    string += self.current_char
+            self.advance()
+            escape_char = False
+            
+        self.advance()
+        return Token(TT_STRING, string, pos_start, self.pos)
+
+    def make_arrow(self):
+        token_type = TT_MINUS
+        pos_start = self.pos.copy()
+        self.advance()
+
+        if self.current_char == '>':
+            self.advance()
+            token_type = TT_ARROW
+
+        return Token(token_type, pos_start=pos_start, pos_end=self.pos)
+
     def make_not_equals(self):
         pos_start = self.pos.copy()
         self.advance()
