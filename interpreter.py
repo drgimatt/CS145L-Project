@@ -262,7 +262,6 @@ class Function(Value):
 		
 		value = res.register(interpreter.visit(self.body_node, new_context))
 		if res.error: return res
-		print("wala ito")
 		return res.success(value)
 	
 	def copy(self):
@@ -432,7 +431,6 @@ class Interpreter:
 		if node.var_name_token:
 			context.symbol_table.set(func_name, func_value)
 
-		print("nakakaomay")
 		return res.success(func_value)
 
 	def visit_CallNode(self, node, context):
@@ -447,7 +445,6 @@ class Interpreter:
 			args.append(res.register(self.visit(arg_node, context)))
 			if res.error: return res
 
-		print("putasate")
 		return_value = res.register(value_to_call.execute(args))
 		if res.error: return res
 		return res.success(return_value)

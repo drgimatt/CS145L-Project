@@ -162,7 +162,6 @@ class Parser:
     def parse(self):
         result = self.expr()
         if not result.error and self.current_token.type != lexer.TT_EOF:
-            print("imburnal")
             return result.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected '+', '-', '*', '/', '^', '==', '!=', '<', '>', <=', '>=', 'AND' or 'OR'"))
         return result
 
@@ -383,7 +382,6 @@ class Parser:
                     if res.error:
                         return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected int, float, '+', '-', or '('"))
 
-                    print("bonaks")
                     return res.success(node)
 
             res.register_advancement()
@@ -391,7 +389,6 @@ class Parser:
             expr = res.register(self.expr())
             if res.error:
                 return res
-            print("fofasd")
             return res.success(VarAssignNode(var_name, expr))
 
         node = res.register(self.binary_operation(
@@ -400,13 +397,10 @@ class Parser:
         if res.error:
             return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, "Expected int, float, identifier, '+', '-', '(', 'FOR', 'IF', 'FUNC' or 'NOT'"))
 
-        print("burnal")
-
         return res.success(node)
     
     def func_def(self):
         res = ParseResult()
-        print("puke")
         if not self.current_token.matches(lexer.TT_KEYWORD, 'FUNC'):
             return res.failure(lexer.InvalidSyntaxError(self.current_token.pos_start, self.current_token.pos_end, f"Expected 'FUNC'"))
 
@@ -461,8 +455,6 @@ class Parser:
         node_to_return = res.register(self.expr())
         if res.error:
             return res
-        
-        print("tangina")
         return res.success(FuncDefNode(var_name_token, args, node_to_return))
 
     ##########################
