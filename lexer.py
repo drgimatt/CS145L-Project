@@ -176,7 +176,6 @@ class Lexer:
             elif self.current_char in DIGITS:
                 tokens.append(self.make_number())
             elif self.current_char in LETTERS:
-                print("bynasd")
                 tokens.append(self.make_identifier())
             elif self.current_char in '"':
                 tokens.append(self.make_string())                

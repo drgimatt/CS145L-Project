@@ -346,7 +346,7 @@ class Parser:
     def arith_expr(self):
         return self.binary_operation(self.term, (lexer.TT_PLUS, lexer.TT_MINUS))
 
-    def expr(self):
+    def expr(self): # NANDITO YUNG ISSUE REGARDING SA FUNCTIONS
         res = ParseResult()
         flag_ident = False
 
