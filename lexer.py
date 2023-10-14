@@ -124,7 +124,7 @@ TT_GTE = 'GTE'
 TT_COMMA = 'COMMA'
 TT_ARROW = 'ARROW'
 
-KEYWORDS = ['AND', 'OR', 'NOT', 'IF', 'THEN', 'ELIF', 'ELSE', 'FUNC','output']
+KEYWORDS = ['AND', 'OR', 'NOT', 'IF', 'THEN', 'ELIF', 'ELSE', 'FUNC','output', 'END']
 
 
 class Token:
@@ -173,6 +173,7 @@ class Lexer:
             if self.current_char in ' \t':
                 self.advance()
             elif self.current_char in '\n':
+                tokens.append(Token(TT_NEWLINE, pos_start=self.pos))
                 self.advance()
             elif self.current_char in DIGITS:
                 tokens.append(self.make_number())
