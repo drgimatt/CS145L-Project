@@ -199,6 +199,11 @@ class Number(Value):
 		
 	def __repr__(self):
 		return str(self.value)      
+	
+Number.null = Number(-1)
+Number.false = Number(0)
+Number.true = Number(1)
+Number.math_PI = Number(lexer.math.pi)	
 
 class String(Value):
 	def __init__(self, value):
@@ -235,43 +240,198 @@ class String(Value):
 	def __repr__(self):
 		return f'"{self.value}"'
 
-class Function(Value):
-	def __init__(self, name, body_node, arg_names):
+class List(Value):
+	def __init__(self, elements):
+		super().__init__()
+		self.elements = elements
+
+	def added_to(self, other):
+		new_list = self.copy()
+		new_list.elements.append(other)
+		return new_list, None
+
+	def subtracted_by(self, other):
+		if isinstance(other, Number):
+			new_list = self.copy()
+			try:
+				new_list.elements.remove(other)
+				return new_list, None
+			except:
+				return None, lexer.RTError(other.pos_start, other.pos_end, 'Element at this index could not be removed from list because index is out of bounds', self.context)
+		else:
+			return None, Value.illegal_operation(self, other)
+
+	def multiplied_by(self, other):
+		if isinstance(other, List):
+			new_list = self.copy()
+			new_list.elements.extend(other.elements)
+			return new_list, None
+		else:
+			return None, Value.illegal_operation(self, other)
+
+	def divided_by(self, other):
+		if isinstance(other, Number):
+			try:
+				return self.elements[other.value], None
+			except:
+				return None, lexer.RTError(other.pos_start, other.pos_end, 'Element at this index could not be retrieved from list because index is out of bounds', self.context)
+		else:
+			return None, Value.illegal_operation(self, other)		
+
+	def copy(self):
+		copy = List(self.elements)
+		copy.set_pos(self.pos_start, self.pos_end)
+		copy.set_context(self.context)
+		return copy
+
+	def __repr__(self):
+		return f'[{", ".join([str(x) for x in self.elements])}]'
+
+class BaseFunction(Value):
+	def __init__(self, name):
 		super().__init__()
 		self.name = name or "<anonymous>"
+
+	def generate_new_context(self):
+		new_context = Context(self.name, self.context, self.pos_start)
+		new_context.symbol_table = SymbolTable(new_context.parent.symbol_table)
+		return new_context
+
+	def check_args(self, args, arg_names):
+		result = RTResult()
+		if len(args) > len(arg_names):
+			return result.failure(lexer.RTError(self.pos_start, self.pos_end, f"{len(args) - len(arg_names)} too many args passed into {self.name}", self.context))
+		if len(args) < len(arg_names):
+			return result.failure(lexer.RTError(self.pos_start, self.pos_end, f"{len(arg_names) - len(args)} too few args passed into {self.name}", self.context))
+		
+		return result.success(None)
+
+	def populate_args(self, arg_names, args, exec_ctx):
+		for i in range(len(args)):
+			arg_name = arg_names[i]
+			arg_value = args[i]
+			arg_value.set_context(exec_ctx)
+			exec_ctx.symbol_table.set(arg_name, arg_value)
+
+	def check_and_populate_args(self, arg_names, args, exec_ctx):
+		result = RTResult()
+		result.register(self.check_args(args, arg_names))
+		if result.error: return result
+		self.populate_args(arg_names, args, exec_ctx)
+		return result.success(None)
+
+class Function(BaseFunction):
+	def __init__(self, name, body_node, arg_names, should_return_null):
+		super().__init__(name)
 		self.body_node = body_node
 		self.arg_names = arg_names
+		self.should_return_null = should_return_null
 	
 	def execute(self, args):
 		res = RTResult()
 		interpreter = Interpreter()
-		new_context = Context(self.name, self.context, self.pos_start)
-		new_context.symbol_table = SymbolTable(new_context.parent.symbol_table)
+		exec_ctx = self.generate_new_context()
 
-		if len(args) > len(self.arg_names): 
-			return res.failure(lexer.RTError(self.pos_start, self.pos_end, f"{len(args) - len(self.arg_names)} too many args passed into {self.name}", self.context))
-
-		if len(args) < len(self.arg_names):
-			return res.failure(lexer.RTError(self.pos_start, self.pos_end, f"{len(args) - len(self.arg_names)} too few args passed into {self.name}", self.context))
-
-		for i in range(len(args)):
-			arg_name = self.arg_names[i]
-			arg_value = args[i]
-			arg_value.set_context(new_context)
-			new_context.symbol_table.set(arg_name, arg_value)
+		self.check_and_populate_args(self.arg_names, args, exec_ctx)
 		
-		value = res.register(interpreter.visit(self.body_node, new_context))
+		value = res.register(interpreter.visit(self.body_node, exec_ctx))
 		if res.error: return res
-		return res.success(value)
+		return res.success(Number.null if self.should_return_null else value)
 	
 	def copy(self):
-		copy = Function(self.name, self.body_node, self.arg_names)
+		copy = Function(self.name, self.body_node, self.arg_names, self.should_return_null)
 		copy.set_context(self.context)
 		copy.set_pos(self.pos_start, self.pos_end)
 		return copy
 
 	def __repr__(self):
 		return f"<function {self.name}>"
+	
+class BuiltInFunction(BaseFunction):
+	def __init__(self, name):
+		super().__init__(name)	
+
+	def execute(self, args):
+		result = RTResult()
+		exec_ctx = self.generate_new_context()
+
+		method_name = f'execute_{self.name}'
+		method = getattr(self, method_name, self.no_execute_method)
+
+		result.register(self.check_and_populate_args(method.arg_names, args, exec_ctx))
+		if result.error: return result
+
+		return_value = result.register(method(exec_ctx))
+		if result.error: return result
+		return result.success(return_value)	
+	
+	def no_visit_method(self, node, context):
+		raise Exception(f'No execute_{self.name} method defined')
+
+	def copy(self):
+		copy = BuiltInFunction(self.name)
+		copy.set_context(self.context)
+		copy.set_pos(self.pos_start, self.pos_end)
+		return copy
+	
+	def __repr__(self):
+		return f"<built-in function {self.name}>"
+	
+	##########################
+
+	def execute_print (self, exec_ctx):
+		print(str(exec_ctx.symbol_table.get('value')))
+		return RTResult().success(Number.null)
+	execute_print.arg_names = ['value']
+
+	def execute_print_ret(self, exec_ctx):
+		return RTResult().success(String(str(exec_ctx.symbol_table.get('value'))))
+	execute_print_ret.arg_names = ['value']
+
+	def execute_clear(self):
+		lexer.os.system('cls' if lexer.os.name == 'nt' else 'clear')
+		return RTResult().success(Number.null)
+	execute_clear.arg_names = []
+
+	def execute_run(self, exec_ctx):
+		fn = exec_ctx.symbol_table.get("fn")
+
+		if not isinstance(fn, String):
+			return RTResult().failure(lexer.RTError(
+			self.pos_start, self.pos_end,
+			"Second argument must be string",
+			exec_ctx
+			))
+
+		fn = fn.value
+
+		try:
+			with open(fn, "r") as f:
+				script = f.read()
+		except Exception as e:
+			return RTResult().failure(lexer.RTError(
+			self.pos_start, self.pos_end,
+			f"Failed to load script \"{fn}\"\n" + str(e),
+			exec_ctx
+			))
+
+		_, error = run(fn, script)
+
+		if error:
+			return RTResult().failure(lexer.RTError(
+			self.pos_start, self.pos_end,
+			f"Failed to finish executing script \"{fn}\"\n" +
+			error.as_string(),
+			exec_ctx
+			))
+
+		return RTResult().success(Number.null)
+	execute_run.arg_names = ["fn"]
+
+BuiltInFunction.print = BuiltInFunction("output<<")
+BuiltInFunction.print_ret = BuiltInFunction("output_ret<<")
+BuiltInFunction.clear = BuiltInFunction("clear")
+BuiltInFunction.run = BuiltInFunction("RUN")
 
 ##########################
 # CONTEXT
@@ -325,6 +485,15 @@ class Interpreter:
 	
 	def visit_StringNode(self, node, context):
 		return RTResult().success(String(node.token.value).set_context(context).set_pos(node.pos_start, node.pos_end))
+	
+	def visit_ListNode(self, node, context):
+		res = RTResult()
+		elements = []
+		for element_node in node.element_nodes:
+			elements.append(res.register(self.visit(element_node, context)))
+			if res.error: 
+				return res
+		return res.success(List(elements).set_context(context).set_pos(node.pos_start, node.pos_end))
 
 	def visit_VarAccessNode(self, node, context):
 		res = RTResult()
@@ -334,7 +503,7 @@ class Interpreter:
 		if value is None:
 			return res.failure(lexer.RTError(node.pos_start, node.pos_end, f"'{var_name}' is not defined", context))
 
-		value = value.copy().set_pos(node.pos_start, node.pos_end)
+		value = value.copy().set_pos(node.pos_start, node.pos_end).set_context(context)
 		return res.success(value)
 	
 	def visit_VarAssignNode(self, node, context):
@@ -345,7 +514,6 @@ class Interpreter:
 
 		context.symbol_table.set(var_name, value)
 		return res.success(value)
-
 
 	def visit_BinaryOperationNode(self, node, context):
 		res = RTResult()
@@ -406,27 +574,28 @@ class Interpreter:
 	def visit_IfNode(self, node, context):
 		res = RTResult()
 
-		for condition, expr in node.cases:
+		for condition, expr, should_return_null in node.cases:
 			condition_value = res.register(self.visit(condition, context))
 			if res.error: return res
 
 			if condition_value.is_true():
 				expr_value = res.register(self.visit(expr, context))
 				if res.error: return res
-				return res.success(expr_value)
+				return res.success(Number.null if should_return_null else expr_value)
 		if node.else_case:
-			else_value = res.register(self.visit(node.else_case, context))
+			expr, should_return_null = node.else_case
+			expr_value = res.register(self.visit(expr, context))
 			if res.error: return res
-			return res.success(else_value)
+			return res.success(Number.null if should_return_null else expr_value)
 		
-		return res.success(None)
+		return res.success(Number.null)
 
 	def visit_FuncDefNode(self, node, context):
 		res = RTResult()
 		func_name = node.var_name_token.value if node.var_name_token else None
 		body_node = node.body_node
 		arg_names = [arg_name.value for arg_name in node.arg_name_tokens]
-		func_value = Function(func_name, body_node, arg_names).set_context(context).set_pos(node.pos_start, node.pos_end)
+		func_value = Function(func_name, body_node, arg_names, node.should_return_null).set_context(context).set_pos(node.pos_start, node.pos_end)
 		
 		if node.var_name_token:
 			context.symbol_table.set(func_name, func_value)
@@ -447,6 +616,7 @@ class Interpreter:
 
 		return_value = res.register(value_to_call.execute(args))
 		if res.error: return res
+		return_value = return_value.copy().set_pos(node.pos_start, node.pos_end).set_context(context)
 		return res.success(return_value)
 
 
@@ -455,9 +625,15 @@ class Interpreter:
 ##########################
 
 global_symbol_table = SymbolTable()
-global_symbol_table.set("NULL", Number(0))
-global_symbol_table.set("TRUE", Number(-1))
-global_symbol_table.set("FALSE", Number(0))
+global_symbol_table.set("NULL", Number.null)
+global_symbol_table.set("TRUE", Number.true)
+global_symbol_table.set("FALSE", Number.false)
+global_symbol_table.set("MATH_PI", Number.math_PI)
+global_symbol_table.set("output<<", BuiltInFunction.print)
+global_symbol_table.set("output_ret<<", BuiltInFunction.print_ret)
+global_symbol_table.set("clear", BuiltInFunction.clear)
+global_symbol_table.set("cls", BuiltInFunction.clear)
+global_symbol_table.set("RUN", BuiltInFunction.run)
 
 def run(file_name, text):
 	#Generate tokens

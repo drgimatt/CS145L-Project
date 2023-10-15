@@ -109,6 +109,8 @@ TT_LPAREN = 'LPAREN'
 TT_RPAREN = 'RPAREN'
 TT_SEMICOLON = 'SEMICOLON'
 TT_COLON = 'COLON'
+TT_LSQUARE = 'LSQUARE'
+TT_RSQUARE = 'RSQUARE'
 TT_IDENTIFIER = 'IDENTIFIER'
 TT_NEWLINE = 'NEWLINE'
 TT_KEYWORD = 'KEYWORD'
@@ -124,7 +126,7 @@ TT_GTE = 'GTE'
 TT_COMMA = 'COMMA'
 TT_ARROW = 'ARROW'
 
-KEYWORDS = ['AND', 'OR', 'NOT', 'IF', 'THEN', 'ELIF', 'ELSE', 'FUNC','output', 'END']
+KEYWORDS = ['VAR','AND', 'OR', 'NOT', 'IF', 'THEN', 'ELIF', 'ELSE', 'FUNC', 'END']
 
 
 class Token:
@@ -172,7 +174,7 @@ class Lexer:
         while self.current_char != None:
             if self.current_char in ' \t':
                 self.advance()
-            elif self.current_char in '\n':
+            elif self.current_char in ';\n':
                 tokens.append(Token(TT_NEWLINE, pos_start=self.pos))
                 self.advance()
             elif self.current_char in DIGITS:
@@ -204,6 +206,12 @@ class Lexer:
             elif self.current_char == ')':
                 tokens.append(Token(TT_RPAREN, pos_start=self.pos))
                 self.advance()
+            elif self.current_char == '[':
+                tokens.append(Token(TT_LSQUARE, pos_start=self.pos))
+                self.advance()
+            elif self.current_char == ']':
+                tokens.append(Token(TT_RSQUARE, pos_start=self.pos))
+                self.advance()                
             elif self.current_char == '!':
                 token, error = self.make_not_equals()
                 if error:
