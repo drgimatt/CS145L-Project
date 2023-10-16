@@ -2,6 +2,7 @@ statements    : NEWLINE* expr (NEWLINE+ expr)* NEWLINE*
 
 expr          : IDENTIFIER COLON EQ expr <-hindi tama so far kase pwede wala colon
               : comp-expr ((KEYWORD AND | KEYWORD: OR)comp-expr)*
+              : output DLT expr
 
 comp-expr     : NOT comp-expr
               : arith-expr ((EE|LT|GT|LTE|GTE) arith-expr)*

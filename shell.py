@@ -9,4 +9,5 @@ while True:
     elif result: 
         if len(result.elements) == 1:
             print(repr(result.elements[0]))
-        print(repr(result))
+            pass
+        #print(repr(result))

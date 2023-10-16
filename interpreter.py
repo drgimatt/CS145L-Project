@@ -428,8 +428,8 @@ class BuiltInFunction(BaseFunction):
 		return RTResult().success(Number.null)
 	execute_run.arg_names = ["fn"]
 
-BuiltInFunction.print = BuiltInFunction("output<<")
-BuiltInFunction.print_ret = BuiltInFunction("output_ret<<")
+BuiltInFunction.print = BuiltInFunction("print")
+BuiltInFunction.print_ret = BuiltInFunction("print_ret")
 BuiltInFunction.clear = BuiltInFunction("clear")
 BuiltInFunction.run = BuiltInFunction("RUN")
 
@@ -513,6 +513,15 @@ class Interpreter:
 		if res.error: return res
 
 		context.symbol_table.set(var_name, value)
+		return res.success(value)
+	
+	def visit_OutputNode(self, node, context):
+		res = RTResult()
+		value = res.register(self.visit(node.value_node, context))
+		if res.error: return res
+
+		# Perform operation
+		print(value)
 		return res.success(value)
 
 	def visit_BinaryOperationNode(self, node, context):
@@ -629,8 +638,8 @@ global_symbol_table.set("NULL", Number.null)
 global_symbol_table.set("TRUE", Number.true)
 global_symbol_table.set("FALSE", Number.false)
 global_symbol_table.set("MATH_PI", Number.math_PI)
-global_symbol_table.set("output<<", BuiltInFunction.print)
-global_symbol_table.set("output_ret<<", BuiltInFunction.print_ret)
+global_symbol_table.set("output", BuiltInFunction.print)
+global_symbol_table.set("output_ret", BuiltInFunction.print_ret)
 global_symbol_table.set("clear", BuiltInFunction.clear)
 global_symbol_table.set("cls", BuiltInFunction.clear)
 global_symbol_table.set("RUN", BuiltInFunction.run)
@@ -640,6 +649,8 @@ def run(file_name, text):
 	input = lexer.Lexer(file_name, text)
 	tokens, error = lexer.Lexer.make_tokens(input)
 	if error: return None, error
+
+	print("TOKENS __ ok", tokens)
 
 	parser = parse.Parser(tokens)
 	ast = parser.parse()

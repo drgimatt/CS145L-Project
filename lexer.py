@@ -120,13 +120,14 @@ TT_EOF = 'EOF'
 TT_POWER = 'POWER'
 TT_NE = 'NE'
 TT_LT = 'LT'
+TT_DLT = 'DLT'
 TT_GT = 'GT'
 TT_LTE = 'LTE'
 TT_GTE = 'GTE'
 TT_COMMA = 'COMMA'
 TT_ARROW = 'ARROW'
 
-KEYWORDS = ['VAR','AND', 'OR', 'NOT', 'IF', 'THEN', 'ELIF', 'ELSE', 'FUNC', 'END']
+KEYWORDS = ['VAR','AND', 'OR', 'NOT', 'IF', 'THEN', 'ELIF', 'ELSE', 'FUNC', 'END', 'output']
 
 
 class Token:
@@ -333,6 +334,10 @@ class Lexer:
         if self.current_char == '=':
             self.advance()
             token_type = TT_LTE
+
+        if self.current_char == '<':
+            self.advance()
+            token_type = TT_DLT     
         
         return Token(token_type, pos_start=pos_start, pos_end=self.pos)   
     
