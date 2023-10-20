@@ -41,8 +41,7 @@ class Reserved(Parser): #parse reserved words and operators
                 #print(tokens[position][1])
                 return Result(tokens[position][0], position + 1) #returns result object and new position - reserved word has been parsed successfully
         else:
-            return None #returns none - no value-tag pair or reserved word has been match in the token list
-        
+            return None #returns none - no value-tag pair or reserved word has been match in the token list 
 
 class Tag(Parser): #matches token with particular tag
     def __init__(self, tag):#constructor
@@ -168,7 +167,6 @@ class Equality:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-
 #arithmetic expression are in three forms
 #literal integer constants -> 43
 #variables -> x
@@ -209,7 +207,6 @@ class VarAexp(Aexp):
             return env[self.name]
         else:
             return 0
-
 
 class BinopAexp(Aexp):
     def __init__(self, operator, left, right):
@@ -258,7 +255,7 @@ class RelopBexp(Bexp): #Relational Expressions
             value = left_value > right_value
         elif self.operator == '>=':
             value = left_value >= right_value
-        elif self.operator == '=':
+        elif self.operator == '==':
             value = left_value == right_value
         elif self.operator == '!=':
             value = left_value != right_value                                                                          
@@ -318,6 +315,30 @@ class AssignStatement(Statement):
         value = self.aexp.eval(env)
         env[self.name] = value
 
+class VariableStatement(Statement):
+    def __init__ (self, name, type):
+        self.name = name
+        self.type = type
+
+    def __repr__(self):
+        return 'VariableStatement(%s, %s)' % (self.name, self.type)
+    
+    def eval(self, env):
+        if self.type == "integer":
+            env[self.name] = 0  # Assign an integer value, e.g., 0
+        elif self.type == "double":
+            env[self.name] = 0.0  # Assign a double value, e.g., 0.0
+
+class OutputStatement(Statement):
+    def __init__ (self, content):
+        self.content = content
+
+    def __repr__(self):
+        return 'OutputStatement(%s)' % self.content
+    
+    def eval(self, env):
+        return self.content
+
 class CompoundStatement(Statement):
     def __init__(self, first, second):
         self.first = first
@@ -361,12 +382,13 @@ class WhileStatement(Statement):
             self.body.eval(env)
             condition_value = self.condition.eval(env)
 
-
 #parser proper
 
 id = Tag(ID)
 str = Tag(STRING)
 #str = Tag(STRING) ^ (lambda s: s[1:-1])
+int_asn = Tag(INT_DECL)
+dbl_asn = Tag(DOUBLE_DECL)
 integer = Tag(INT) ^ (lambda i: int(i))
 double = Tag(DOUBLE) ^ (lambda d: float(d))
 
@@ -379,7 +401,7 @@ def parser():
     return Phrase(stmt_list()) 
 
 def keyword(kw):
-    if kw == "output<<":
+    if kw == "output<<" or kw == "output <<":
         return Reserved(kw, OUTPUT)
     elif kw == "integer":
         return Reserved(kw, INT_DECL)
@@ -393,15 +415,28 @@ def stmt_list():
     return Exp(stmt(), separator)
 
 def stmt():
-    return assign_stmt() | \
+    return output_stmt() | \
+           assign_stmt() | \
+           type_stmt() | \
            if_stmt() | \
            while_stmt()
 def assign_stmt():
     def process(parsed):
         ((name, _), exp) = parsed
         return AssignStatement(name, exp)
-    return id + keyword(':=') + aexp() ^ process
+    return (id + keyword(':=') + (aexp() | bexp()) ^ process)
 
+def output_stmt():
+    def process(parsed):
+        ((_, value)) = parsed
+        return OutputStatement(value)
+    return keyword('output<<') | keyword('output <<') + (aexp() | str) ^ process
+
+def type_stmt():
+    def process(parsed):
+        ((name, _), exp) = parsed
+        return VariableStatement(name, exp)
+    return  id + keyword(':') + (int_asn | dbl_asn)  ^ process 
 def if_stmt():
     #print("stsa")
     def process(parsed):
@@ -425,7 +460,7 @@ def while_stmt():
         return WhileStatement(condition, body)
     return keyword('while') + bexp() + \
            keyword('do') + Lazy(stmt_list) + \
-           keyword('end') ^ process
+           keyword(';') ^ process
 
 def bexp():
     return precedence(bexp_term(),
@@ -441,8 +476,8 @@ def bexp_not():
     return keyword('not') + Lazy(bexp_term) ^ (lambda parsed: NotBexp(parsed[1]))
 
 def bexp_relop():
-    relops = ['<', '<=', '>', '>=', '=', '!=']
-    return aexp() + any_operator_in_list(relops) + aexp() ^ process_relop
+    relops = ['<', '<=', '>', '>=', '==', '!=']
+    return (aexp() + any_operator_in_list(relops) + aexp() ^ process_relop)
 
 def bexp_group():
     return keyword('(') + Lazy(bexp) + keyword(')') ^ process_group
@@ -488,7 +523,7 @@ def process_group(parsed):
     return p
 
 def process_binop(op):
-    return lambda l, r: BinopAexp(op, l, r)
+    return lambda l, r: BinopAexp(op, l, r) 
 
 def any_operator_in_list(ops):
     op_parsers = [keyword(op) for op in ops]

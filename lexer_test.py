@@ -9,3 +9,4 @@ if __name__ == '__main__':
     tokens = imp_lex(characters)
     for token in tokens:
         print (token)
+    file.close()

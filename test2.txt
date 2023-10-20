@@ -1,0 +1,5 @@
+x:double;
+y:=4;
+z:integer;
+-4;
+3-5;
