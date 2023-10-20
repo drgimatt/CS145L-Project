@@ -1,0 +1,2 @@
+if(x<4) 
+output<<"str";x:=12;;

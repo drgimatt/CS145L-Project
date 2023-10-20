@@ -430,7 +430,7 @@ def output_stmt():
     def process(parsed):
         ((_, value)) = parsed
         return OutputStatement(value)
-    return keyword('output<<') | keyword('output <<') + (aexp() | str) ^ process
+    return (keyword('output<<') | keyword('output <<')) + (aexp() | str) ^ process
 
 def type_stmt():
     def process(parsed):
