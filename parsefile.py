@@ -2,7 +2,6 @@ from lexer import *
 import functools 
 
 #combinator portion
-
 class Result:
     def __init__(self, value, position):
         self.value = value
@@ -391,10 +390,26 @@ int_asn = Tag(INT_DECL)
 dbl_asn = Tag(DOUBLE_DECL)
 integer = Tag(INT) ^ (lambda i: int(i))
 double = Tag(DOUBLE) ^ (lambda d: float(d))
-
+syntax_error_flag = False
 # Top level parser
-def imp_parse(tokens):
-    ast = parser()(tokens, 0)
+
+class SyntaxError(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+def imp_parse_test(tokens):
+    syntax_error_flag = False
+    try:
+        ast = parser()(tokens, 0)
+    except SyntaxError as e:
+        syntax_error_flag = True
+        sys.stderr.write(f"Syntax Error: {e}\n")
+
+    if syntax_error_flag:
+        sys.stderr.write("Syntax errors were found in the file.\n")
+    else:
+        sys.stdout.write("No syntax errors found in the file.\n")
     return ast
 
 def parser():
@@ -463,7 +478,12 @@ def while_stmt():
            keyword(';') ^ process
 
 def bexp():
-    return precedence(bexp_term(),
+
+    if not precedence(bexp_term(), bexp_precedence_levels, process_logic):
+        raise SyntaxError("Syntax error: bexp")
+        
+    else:
+        return precedence(bexp_term(),
                       bexp_precedence_levels,
                       process_logic)
 
@@ -483,6 +503,10 @@ def bexp_group():
     return keyword('(') + Lazy(bexp) + keyword(')') ^ process_group
 
 def aexp():
+    if not precedence(aexp_term(), aexp_precedence_levels, process_binop):
+
+        raise SyntaxError("Syntax error: aexp")
+
     return precedence(aexp_term(),
                       aexp_precedence_levels,
                       process_binop)

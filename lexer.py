@@ -33,7 +33,7 @@ token_expressions = [
     (r'integer',               INT_DECL),
     (r'double',             DOUBLE_DECL),
     (r'output<<',                OUTPUT),
-    (r'output <<',                OUTPUT),    
+    (r'output <<',               OUTPUT),    
     (r'and',                   RESERVED),
     (r'or',                    RESERVED),
     (r'not',                   RESERVED),
@@ -67,10 +67,11 @@ def lex(characters, token_expressions):
                 break
         if not match:
             sys.stderr.write('Illegal character: %s\\n' % characters[position])
+            sys.stderr.write('\nERROR')
             sys.exit(1)
         else:
             position = match.end(0)
     return tokens
 
 def imp_lex(characters):
-    return lex(characters, token_expressions)
+        return lex(characters, token_expressions)
