@@ -12,17 +12,12 @@ if __name__ == '__main__':
     with open(filename, 'r') as file:
         text = file.read()
     file.close()
-    #print(text)
+
     # Split the text into lines using semicolons as indicators
     statements = text.split(';')
-    # print('statements1 - split by ; : %s', statements)
-    #print(statements)
     # Remove leading and trailing whitespace from each line
     statements = [statement.strip() + ";" for statement in statements]
-    # print(statements)
-    #print('statements2 - strip then add ;: %s', statements)
-    test = len(statements)
-    #print(statements)
+
     statements = [item for item in statements if item.strip() != ';']
 
     if statements:
@@ -34,20 +29,15 @@ if __name__ == '__main__':
         with open('NOSPACES.txt', 'w') as file:
             file.write(no_spaces)
 
-        test2 = len(statements)
-        #print('statements3 - for statement in statements: %s', statements)
+        file.close()
+
         for statement in statements:
-            #print(syntax_error_flag)
-            # print(statement)
-            # print('statements3 - for statement in statements: %s', statements)
+
             characters = statement.strip()  # Read and strip each line
             if not characters:
                 continue  # Skip empty lines
-            #print(characters)
 
             tokens = imp_lex(characters)
-            #parse_result = imp_parse(tokens)
-            #print(tokens)
 
             condition = "stmt"
 
@@ -57,19 +47,18 @@ if __name__ == '__main__':
                 parser = function_mapping[condition]()
                 result = parser(tokens, 0)
                 if result:
-                    #print(result)
                     break
                 else:
                     err_flag = 1
-            #parse_result = imp_parse(tokens)
-        #print(test2)
-        #print(test)
+
 
     if err_flag == 0:
         print("NO ERROR(S) FOUND")
 
         with open("NOSPACES.TXT", 'r') as file:
             content = file.read()
+            
+        file.close()
 
         reserved_pattern = {'integer', 'double', 'if', 'output',
                             'else', 'while', 'do', 'end', 'and', 'or', 'not'}
@@ -99,10 +88,8 @@ if __name__ == '__main__':
             file.write('\n')
             file.write("Symbols: " + symbol_string)
 
+        file.close()
+
     else:
         print("ERROR")
         sys.exit(1)
-        """with open("NOSPACES.TXT", 'r') as file:
-            file.write("")
-        with open("RES_SYM.TXT", 'r') as file:
-            file.write("")"""
