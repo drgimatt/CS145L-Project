@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
             condition = "stmt"
 
-            function_mapping = {"stmt": stmt}
+            function_mapping = {"stmt": stmt, "bexp" : bexp, "aexp" : aexp}
 
             for condition in function_mapping:
                 parser = function_mapping[condition]()
@@ -101,6 +101,7 @@ if __name__ == '__main__':
 
     else:
         print("ERROR")
+        sys.exit(1)
         """with open("NOSPACES.TXT", 'r') as file:
             file.write("")
         with open("RES_SYM.TXT", 'r') as file:

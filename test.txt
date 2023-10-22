@@ -1,5 +1,5 @@
 if(x<4)
 output<<"str";
-34+43;
+y:=34+43;
 x:=12;
-y: unary;
+y: double;

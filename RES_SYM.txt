@@ -1,2 +1,2 @@
-Reserved Words: integer double if output
-Symbols: : ; : ; := ; ( < ) << ;
+Reserved Words: output
+Symbols: := ; << ;
