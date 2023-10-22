@@ -21,7 +21,6 @@ if __name__ == '__main__':
     statements = [item for item in statements if item.strip() != ';']
 
     if statements:
-        #statements.pop()
         
         no_spaces = ''.join(statements)
         no_spaces = no_spaces.replace('\n', '').replace(' ', '')
@@ -61,8 +60,7 @@ if __name__ == '__main__':
             
         file.close()
 
-        reserved_pattern = {'integer', 'double', 'if', 'output',
-                            'else', 'while', 'do', 'end', 'and', 'or', 'not'}
+        reserved_pattern = {'integer', 'double', 'if', 'output','else', 'while', 'do', 'end', 'and', 'or', 'not'}
         symbols_pattern = set(': ; := ( < ) << + - * / <= > >= == !=')
 
         # Extract symbols from the content
@@ -84,7 +82,7 @@ if __name__ == '__main__':
         reserved_string = ' '.join(extracted_reserved)
         symbol_string = ' '.join(extracted_symbols.split())
 
-        with open('RES_SYM.txt', 'w') as file:
+        with open('RES_SYM.TXT', 'w') as file:
             file.write("Reserved Words: " + reserved_string)
             file.write('\n')
             file.write("Symbols: " + symbol_string)

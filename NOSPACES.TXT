@@ -1,1 +1,1 @@
-while(x>4)dox:=2+x;if(x!=4)x:=2+x;poggers:=3;z:=-2;
+result:=6.2343;totalAmount:=2.34;height:=-1.323;precisionCorrection:=0.0;
