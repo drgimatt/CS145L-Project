@@ -1,1 +1,1 @@
-x:=2;output<<x;
+while(x>4)dox:=2+x;if(x!=4)x:=2+x;

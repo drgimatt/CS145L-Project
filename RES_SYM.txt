@@ -1,2 +1,2 @@
-Reserved Words: output
-Symbols: := ; << ;
+Reserved Words: while if
+Symbols: ( > ) := + ; ( != ) := + ;

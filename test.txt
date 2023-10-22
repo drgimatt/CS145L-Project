@@ -1,5 +1,6 @@
-if(x<4)
-output<<"str";
-y:=34+43;
-x:=12;
-y: double;
+while x > 4
+do 
+    x:= 2 + x;
+
+if (x != 4)
+    x:= 2 + x;
