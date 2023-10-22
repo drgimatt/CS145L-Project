@@ -47,6 +47,7 @@ if __name__ == '__main__':
                 parser = function_mapping[condition]()
                 result = parser(tokens, 0)
                 if result:
+                    print(result)
                     break
                 else:
                     err_flag = 1

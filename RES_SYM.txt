@@ -1,2 +1,2 @@
 Reserved Words: while if
-Symbols: ( > ) := + ; ( != ) := + ;
+Symbols: ( > ) := + ; ( != ) := + ; := ; :=- ;

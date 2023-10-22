@@ -35,9 +35,6 @@ class Reserved(Parser): #parse reserved words and operators
         if position < len(tokens) and \
             tokens[position][0] == self.value and \
             tokens[position][1] is self.tag:
-                #print("nandito kaya? sa reserved")
-                #print(tokens[position][0])
-                #print(tokens[position][1])
                 return Result(tokens[position][0], position + 1) #returns result object and new position - reserved word has been parsed successfully
         else:
             return None #returns none - no value-tag pair or reserved word has been match in the token list 
@@ -435,6 +432,7 @@ def stmt():
            type_stmt() | \
            if_stmt() | \
            while_stmt()
+
 def assign_stmt():
     def process(parsed):
         ((name, _), exp) = parsed
@@ -453,17 +451,16 @@ def type_stmt():
         return VariableStatement(name, exp)
     return  id + keyword(':') + (int_asn | dbl_asn)  ^ process 
 def if_stmt():
-    #print("stsa")
     def process(parsed):
         (((((_, condition), _), true_statement), false_parsed), _) = parsed
-        #print(parsed)
+
         if false_parsed:
             (_, false_statement) = false_parsed
         else:
             false_statement = None
-            #print("gst")
+
         return IfStatement(condition, true_statement, false_statement)
-    #print("asfaegtaf")
+
     return keyword('if') + keyword('(') + bexp() + keyword(')')  + \
            Lazy(stmt_list) + \
            Opt(keyword('else') + Lazy(stmt_list)) + \
@@ -495,7 +492,7 @@ def bexp_term():
            bexp_group()
 
 def bexp_not():
-    return keyword('not') + Lazy(bexp_term) ^ (lambda parsed: NotBexp(parsed[1]))
+    return (keyword('not') | keyword('-'))+ Lazy(bexp_term) ^ (lambda parsed: NotBexp(parsed[1]))
 
 def bexp_relop():
     relops = ['<', '<=', '>', '>=', '==', '!=']
@@ -514,7 +511,14 @@ def aexp():
                       process_binop)
 
 def aexp_term():
-    return aexp_value() | aexp_group()
+    return aexp_value() | aexp_group() | aexp_unary_minus()
+
+def aexp_unary_minus():
+    return (keyword('-') + aexp_value() ^ process_unary_minus)
+
+def process_unary_minus(parsed):
+    (_, value) = parsed
+    return BinopAexp('-', IntAexp(0), value)  # Replace with your own BinopAexp for subtraction
 
 def aexp_group():
     return keyword('(') + Lazy(aexp) + keyword(')') ^ process_group
@@ -549,7 +553,9 @@ def process_group(parsed):
     return p
 
 def process_binop(op):
-    return lambda l, r: BinopAexp(op, l, r) 
+    if op == '-':
+        return lambda l, r: BinopAexp(op, IntAexp(0), r)
+    return lambda l, r: BinopAexp(op, l, r)
 
 def any_operator_in_list(ops):
     op_parsers = [keyword(op) for op in ops]
