@@ -473,9 +473,11 @@ def while_stmt():
     def process(parsed):
         ((((_, condition), _), body), _) = parsed
         return WhileStatement(condition, body)
-    return keyword('while')  + bexp()  + \
+
+    return keyword('while') + keyword('(') + bexp() + keyword(')') + \
            keyword('do') + Lazy(stmt_list) + \
            keyword(';') ^ process
+
 
 def bexp():
 
