@@ -2,7 +2,6 @@ import sys
 from parsefile import *
 
 err_flag = 0
-counter = 0
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
@@ -46,7 +45,7 @@ if __name__ == '__main__':
                 parser = function_mapping[condition]()
                 result = parser(tokens, 0)
                 if result:
-                    print(result)
+                    #print(result)
                     break
                 else:
                     err_flag = 1

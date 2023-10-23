@@ -1,1 +1,1 @@
-result:=6.2343;totalAmount:=2.34;height:=-1.323;precisionCorrection:=0.0;
+x:integer;y:double;x:=3;if(x<5)output<<x;
